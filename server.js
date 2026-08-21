@@ -7,10 +7,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Make the invoices folder publicly accessible for downloads
 app.use('/invoices', express.static('invoices'));
 
-// Mock Database: Inventory at Nadaun Hub
 let inventory = [
   { id: '1', name: 'Paracetamol 650mg (10x10 Box)', price: 450, stock: 120 },
   { id: '2', name: 'Pantoprazole 40mg (10x10 Box)', price: 620, stock: 85 },
@@ -21,18 +19,14 @@ let inventory = [
   { id: '7', name: 'Cetirizine 10mg (10x10 Box)', price: 180, stock: 200 }
 ];
 
-// Order History Log for Admin Dashboard
 let ordersHistory = [];
 
-// Endpoint to fetch live catalog
 app.get('/api/catalog', (req, res) => {
   res.json({ success: true, products: inventory });
 });
 
-// Admin Login Endpoint
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
-  // Simple secure credentials for Nadaun Hub Admin
   if (username === 'admin' && password === 'nadaun123') {
     res.json({ success: true, message: 'Admin authenticated successfully' });
   } else {
@@ -40,12 +34,10 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
-// Admin Endpoint: Get All Past Orders & Invoices
 app.get('/api/admin/orders', (req, res) => {
   res.json({ success: true, orders: ordersHistory });
 });
 
-// Admin Endpoint: Add New Product to Inventory
 app.post('/api/admin/products', (req, res) => {
   const { name, price, stock } = req.body;
   if (!name || !price || !stock) {
@@ -61,7 +53,6 @@ app.post('/api/admin/products', (req, res) => {
   res.json({ success: true, message: 'Product added successfully!', products: inventory });
 });
 
-// Endpoint to process order and generate GST invoice
 app.post('/api/orders', (req, res) => {
   const { chemistPhone, licenseNumber, items } = req.body;
 
@@ -97,7 +88,6 @@ app.post('/api/orders', (req, res) => {
   const grandTotal = subtotal + cgst + sgst;
   const orderId = 'HP-' + Math.floor(100000 + Math.random() * 900000);
 
-  // Generate PDF Invoice
   const doc = new PDFDocument({ margin: 50 });
   const invoiceFileName = `invoice_${orderId}.pdf`;
   const invoicePath = `./invoices/${invoiceFileName}`;
@@ -153,7 +143,6 @@ app.post('/api/orders', (req, res) => {
       invoiceUrl: `/invoices/${invoiceFileName}`
     };
 
-    // Save into history log for admin
     ordersHistory.unshift(newOrderData);
 
     res.json({
