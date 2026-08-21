@@ -4,6 +4,10 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 
 const app = express();
+// Add this home route so the link shows a friendly message instead of an error
+app.get('/', (req, res) => {
+  res.send('H.P. Pharma B2B Server is Live and Running in Nadaun!');
+});
 app.use(express.json());
 app.use(cors());
 
