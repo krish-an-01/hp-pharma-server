@@ -21,9 +21,44 @@ let inventory = [
   { id: '7', name: 'Cetirizine 10mg (10x10 Box)', price: 180, stock: 200 }
 ];
 
-// Endpoint to fetch live catalog for the mobile app
+// Order History Log for Admin Dashboard
+let ordersHistory = [];
+
+// Endpoint to fetch live catalog
 app.get('/api/catalog', (req, res) => {
   res.json({ success: true, products: inventory });
+});
+
+// Admin Login Endpoint
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  // Simple secure credentials for Nadaun Hub Admin
+  if (username === 'admin' && password === 'nadaun123') {
+    res.json({ success: true, message: 'Admin authenticated successfully' });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid Admin Credentials' });
+  }
+});
+
+// Admin Endpoint: Get All Past Orders & Invoices
+app.get('/api/admin/orders', (req, res) => {
+  res.json({ success: true, orders: ordersHistory });
+});
+
+// Admin Endpoint: Add New Product to Inventory
+app.post('/api/admin/products', (req, res) => {
+  const { name, price, stock } = req.body;
+  if (!name || !price || !stock) {
+    return res.status(400).json({ success: false, message: 'Missing product details.' });
+  }
+  const newId = (inventory.length + 1).toString();
+  inventory.push({
+    id: newId,
+    name,
+    price: Number(price),
+    stock: Number(stock)
+  });
+  res.json({ success: true, message: 'Product added successfully!', products: inventory });
 });
 
 // Endpoint to process order and generate GST invoice
@@ -37,7 +72,6 @@ app.post('/api/orders', (req, res) => {
   let subtotal = 0;
   let orderedItemsDetail = [];
 
-  // 1. Verify stock and calculate totals
   for (const [id, qty] of Object.entries(items)) {
     const product = inventory.find(p => p.id === id);
     if (!product || product.stock < qty) {
@@ -47,9 +81,7 @@ app.post('/api/orders', (req, res) => {
       });
     }
     
-    // Deduct stock from inventory
     product.stock -= qty;
-
     const itemTotal = product.price * qty;
     subtotal += itemTotal;
     orderedItemsDetail.push({
@@ -60,13 +92,12 @@ app.post('/api/orders', (req, res) => {
     });
   }
 
-  // Intra-state GST calculation for Himachal Pradesh (CGST 6% + SGST 6% = 12%)
   const cgst = subtotal * 0.06;
   const sgst = subtotal * 0.06;
   const grandTotal = subtotal + cgst + sgst;
   const orderId = 'HP-' + Math.floor(100000 + Math.random() * 900000);
 
-  // 2. Generate PDF GST Tax Invoice
+  // Generate PDF Invoice
   const doc = new PDFDocument({ margin: 50 });
   const invoiceFileName = `invoice_${orderId}.pdf`;
   const invoicePath = `./invoices/${invoiceFileName}`;
@@ -78,27 +109,23 @@ app.post('/api/orders', (req, res) => {
   const writeStream = fs.createWriteStream(invoicePath);
   doc.pipe(writeStream);
 
-  // PDF Header
   doc.fontSize(20).text('H.P. PHARMA B2B DISTRIBUTORS', { align: 'center' });
   doc.fontSize(10).text('Nadaun Hub, District Hamirpur, H.P. | Wholesaler Drug License: Form 20B/21B', { align: 'center' });
   doc.text('GSTIN: 02AAAAA0000A1Z5', { align: 'center' });
   doc.moveDown();
 
-  // Invoice Meta
   doc.fontSize(12).text(`Tax Invoice ID: ${orderId}`);
-  doc.text(`Date: ${new Date().toLocaleDateString()}`);
+  doc.text(`Date: ${new Date().toLocaleString()}`);
   doc.text(`Chemist Phone: ${chemistPhone}`);
   doc.text(`Retail License No: ${licenseNumber}`);
   doc.moveDown();
 
-  // Table Headers
   doc.fontSize(10).text('Item Description', 50, doc.y, { continued: true });
   doc.text('Qty', 300, doc.y, { continued: true });
   doc.text('Rate', 360, doc.y, { continued: true });
   doc.text('Total', 440, doc.y);
   doc.text('---------------------------------------------------------------------------------------------------------');
 
-  // Table Rows
   orderedItemsDetail.forEach(item => {
     doc.text(item.name, 50, doc.y, { continued: true, width: 240 });
     doc.text(item.qty.toString(), 300, doc.y, { continued: true });
@@ -109,7 +136,6 @@ app.post('/api/orders', (req, res) => {
   doc.text('---------------------------------------------------------------------------------------------------------');
   doc.moveDown();
 
-  // Totals
   doc.text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' });
   doc.text(`CGST (6%): ₹${cgst.toFixed(2)}`, { align: 'right' });
   doc.text(`SGST (6%): ₹${sgst.toFixed(2)}`, { align: 'right' });
@@ -117,8 +143,19 @@ app.post('/api/orders', (req, res) => {
   
   doc.end();
 
-  // 3. Wait for PDF write stream to finish, then respond
   writeStream.on('finish', () => {
+    const newOrderData = {
+      orderId,
+      chemistPhone,
+      licenseNumber,
+      grandTotal,
+      date: new Date().toLocaleString(),
+      invoiceUrl: `/invoices/${invoiceFileName}`
+    };
+
+    // Save into history log for admin
+    ordersHistory.unshift(newOrderData);
+
     res.json({
       success: true,
       message: 'Order placed successfully, inventory updated, and tax invoice generated.',
@@ -129,7 +166,6 @@ app.post('/api/orders', (req, res) => {
   });
 });
 
-// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Nadaun B2B Pharma Server running on port ${PORT}`);
