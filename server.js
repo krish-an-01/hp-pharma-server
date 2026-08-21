@@ -4,12 +4,11 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 
 const app = express();
-// Add this home route so the link shows a friendly message instead of an error
-app.get('/', (req, res) => {
-  res.send('H.P. Pharma B2B Server is Live and Running in Nadaun!');
-});
 app.use(express.json());
 app.use(cors());
+
+// Make the invoices folder publicly accessible for downloads
+app.use('/invoices', express.static('invoices'));
 
 // Mock Database: Inventory at Nadaun Hub
 let inventory = [
@@ -18,7 +17,6 @@ let inventory = [
   { id: '3', name: 'Amoxy-Clav 625mg (1x10 Strip)', price: 1100, stock: 50 },
   { id: '4', name: 'Aceclofenac + Paracetamol (10x10)', price: 520, stock: 150 },
   { id: '5', name: 'Telmisartan 40mg (10x10 Box)', price: 380, stock: 90 },
-  // --- ADD YOUR NEW PRODUCTS BELOW ---
   { id: '6', name: 'Azithromycin 500mg (5x3 Tablets)', price: 350, stock: 60 },
   { id: '7', name: 'Cetirizine 10mg (10x10 Box)', price: 180, stock: 200 }
 ];
@@ -62,7 +60,7 @@ app.post('/api/orders', (req, res) => {
     });
   }
 
-  // Intra-state GST calculation for Himachal Pradesh (CGST 6% + SGST 6% = 12% average)
+  // Intra-state GST calculation for Himachal Pradesh (CGST 6% + SGST 6% = 12%)
   const cgst = subtotal * 0.06;
   const sgst = subtotal * 0.06;
   const grandTotal = subtotal + cgst + sgst;
@@ -118,7 +116,7 @@ app.post('/api/orders', (req, res) => {
   
   doc.end();
 
-  // 3. Send response back to mobile app
+  // 3. Send response back to mobile app / portal
   res.json({
     success: true,
     message: 'Order placed successfully, inventory updated, and tax invoice generated.',
