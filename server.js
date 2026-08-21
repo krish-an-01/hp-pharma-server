@@ -117,7 +117,7 @@ app.post('/api/orders', (req, res) => {
   
   doc.end();
 
-  // 3. WAIT FOR THE PDF TO FINISH WRITING, THEN SEND THE RESPONSE
+  // 3. Wait for PDF write stream to finish, then respond
   writeStream.on('finish', () => {
     res.json({
       success: true,
@@ -127,6 +127,7 @@ app.post('/api/orders', (req, res) => {
       invoiceUrl: `/invoices/${invoiceFileName}`
     });
   });
+});
 
 // Start Server
 const PORT = process.env.PORT || 3000;
