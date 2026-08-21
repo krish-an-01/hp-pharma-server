@@ -75,7 +75,8 @@ app.post('/api/orders', (req, res) => {
     fs.mkdirSync('./invoices');
   }
   
-  doc.pipe(fs.createWriteStream(invoicePath));
+  const writeStream = fs.createWriteStream(invoicePath);
+  doc.pipe(writeStream);
 
   // PDF Header
   doc.fontSize(20).text('H.P. PHARMA B2B DISTRIBUTORS', { align: 'center' });
@@ -116,15 +117,16 @@ app.post('/api/orders', (req, res) => {
   
   doc.end();
 
-  // 3. Send response back to mobile app / portal
-  res.json({
-    success: true,
-    message: 'Order placed successfully, inventory updated, and tax invoice generated.',
-    orderId,
-    grandTotal,
-    invoiceUrl: `/invoices/${invoiceFileName}`
+  // 3. WAIT FOR THE PDF TO FINISH WRITING, THEN SEND THE RESPONSE
+  writeStream.on('finish', () => {
+    res.json({
+      success: true,
+      message: 'Order placed successfully, inventory updated, and tax invoice generated.',
+      orderId,
+      grandTotal,
+      invoiceUrl: `/invoices/${invoiceFileName}`
+    });
   });
-});
 
 // Start Server
 const PORT = process.env.PORT || 3000;
