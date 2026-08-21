@@ -18,6 +18,9 @@ let inventory = [
   { id: '3', name: 'Amoxy-Clav 625mg (1x10 Strip)', price: 1100, stock: 50 },
   { id: '4', name: 'Aceclofenac + Paracetamol (10x10)', price: 520, stock: 150 },
   { id: '5', name: 'Telmisartan 40mg (10x10 Box)', price: 380, stock: 90 },
+  // --- ADD YOUR NEW PRODUCTS BELOW ---
+  { id: '6', name: 'Azithromycin 500mg (5x3 Tablets)', price: 350, stock: 60 },
+  { id: '7', name: 'Cetirizine 10mg (10x10 Box)', price: 180, stock: 200 }
 ];
 
 // Endpoint to fetch live catalog for the mobile app
